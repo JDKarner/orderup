@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JDKarner:OrderUp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .control-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <h1>JDKarner:OrderUp</h1>
+        <div class="form-group">
+            <label for="stationSelect">Select Station:</label>
+            <select id="stationSelect" onchange="loadStation(this.value)">
+                <!-- Will be populated with stations 01-40 -->
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="orderNumber">Order Number:</label>
+            <input type="text" id="orderNumber" placeholder="Enter order number">
+        </div>
+        <div class="form-group">
+            <label for="osVersion">OS Version:</label>
+            <input type="text" id="osVersion" placeholder="Enter OS version">
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes:</label>
+            <textarea id="notes" placeholder="Enter notes"></textarea>
+        </div>
+        <button onclick="updateStation()">Update Display</button>
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://localhost:17076'; // Replace with your server's IP
+
+        // Populate station select
+        const stationSelect = document.getElementById('stationSelect');
+        for (let i = 1; i <= 40; i++) {
+            const stationId = i.toString().padStart(2, '0');
+            const option = document.createElement('option');
+            option.value = stationId;
+            option.textContent = `Station ${stationId}`;
+            stationSelect.appendChild(option);
+        }
+
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.className = 'status ' + (isError ? 'error' : 'success');
+            setTimeout(() => status.style.display = 'none', 3000);
+        }
+
+        function loadStation(stationId) {
+            fetch(`${SERVER_URL}/station/${stationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('orderNumber').value = data.order_number || '';
+                    document.getElementById('osVersion').value = data.os_version || '';
+                    document.getElementById('notes').value = data.notes || '';
+                })
+                .catch(error => showStatus('Error loading station data: ' + error.message, true));
+        }
+
+        function updateStation() {
+            const stationId = document.getElementById('stationSelect').value;
+            const data = {
+                order_number: document.getElementById('orderNumber').value,
+                os_version: document.getElementById('osVersion').value,
+                notes: document.getElementById('notes').value
+            };
+
+            fetch(`${SERVER_URL}/station/${stationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showStatus(`Station ${stationId} updated successfully!`);
+                } else {
+                    showStatus('Update failed: ' + (result.error || 'Unknown error'), true);
+                }
+            })
+            .catch(error => showStatus('Error updating station: ' + error.message, true));
+        }
+
+        // Load initial station data
+        loadStation('01');
+    </script>
+</body>
+</html>
+
